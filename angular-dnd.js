@@ -21,8 +21,8 @@ angular.module('dragAndDrop', [])
       var ngModel;
       if (angular.isDefined($scope.node)) {
         ngModel = $scope.node;
-      } else if (angular.isDefined($scope.data)) {
-        ngModel = $scope.data;
+      } else if (angular.isDefined($scope.channel)) {
+        ngModel = $scope.channel;
       } else {
         ngModel = $scope.$eval($attr.ngModel);
         if (angular.isUndefined(ngModel)) {
@@ -45,7 +45,7 @@ angular.module('dragAndDrop', [])
 
       var elem = $elem[0];
 
-      var end = $scope.$eval($attr.end);
+      var end = $scope.$eval($attr.onDrag);
 
       function renderClone() {
         var canvas = $window.document.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
@@ -79,6 +79,7 @@ angular.module('dragAndDrop', [])
       }
 
       elem.addEventListener('dragstart', function (e) {
+
         if (drags.length === 0) {
           drags = angular.element.find('.drop');
         }
@@ -90,7 +91,6 @@ angular.module('dragAndDrop', [])
         });
 
         $elem.addClass('on-drag');
-
 
         (e.originalEvent || e).dataTransfer.effectAllowed = e.altKey ? 'copy' : 'move';
         (e.originalEvent || e).dataTransfer.setData('text/html', '');
@@ -109,19 +109,16 @@ angular.module('dragAndDrop', [])
       });
 
       elem.addEventListener('dragend', function (e) {
-        var dropContent = $scope[$attr.dragContent];
-        var event = e.dataTransfer.dropEffect;
-
         $elem.removeClass('on-drag');
 
         angular.forEach(dndApi.areas(), function (area) {
           area.removeClass('draging');
-
         });
-        if (angular.isFunction(end) && angular.isDefined(dropContent)) {
-          if (event === 'move') {
+
+        if (angular.isFunction(end)) {
+          if (e.dataTransfer.dropEffect === 'move') {
             $scope.$apply(function () {
-              end(ngModel, dropContent);
+              end(ngModel);
             });
           }
         }
@@ -133,7 +130,7 @@ angular.module('dragAndDrop', [])
       elem.setAttribute('draggable', true);
     }
   };
-}).directive('drop', function (dndApi) {
+}).directive('onDropped', function (dndApi) {
 
   var areas = [];
   var drags = [];
@@ -144,21 +141,20 @@ angular.module('dragAndDrop', [])
 
       if (angular.isDefined($scope.node)) {
         ngModel = $scope.node;
-      } else if (angular.isDefined($scope.data)) {
-        ngModel = $scope.data;
+      } else if (angular.isDefined($scope.channel)) {
+        ngModel = $scope.channel;
       } else if (angular.isDefined($attr.ngModel)) {
         ngModel = $scope.$eval($attr.ngModel);
       }
 
-      var elem    = $elem[0];
-      var drop    = $scope.$eval($attr.drop),
-          enter   = $scope.$eval($attr.enter),
-          leave   = $scope.$eval($attr.leave);
+      var elem = $elem[0];
 
-      var left    = elem.offsetLeft,
-          right   = left + elem.offsetWidth,
-          top     = elem.offsetTop,
-          bottom  = top + elem.offsetHeight;
+      var drop = $scope.$eval($attr.onDropped);
+
+      var left   = elem.offsetLeft,
+          right  = left + elem.offsetWidth,
+          top    = elem.offsetTop,
+          bottom = top + elem.offsetHeight;
 
       dndApi.addArea($elem);
 
@@ -172,9 +168,7 @@ angular.module('dragAndDrop', [])
 
         if (angular.isFunction(drop) && angular.isDefined(result)) {
 
-          var dropContent = $scope[$attr.dropContent];
-
-          if (dropContent && typeof $scope.elementWidth !== "undefined") {
+          if (typeof $scope.elementWidth !== "undefined") {
             var x = (e.offsetX - result.offset) / $scope.elementWidth * 100;
             result.data.position = {
               x: Math.max(Math.min(x, 100), 0)
@@ -184,7 +178,7 @@ angular.module('dragAndDrop', [])
           result.data.type = result.data.name.match(/\.mid$/i) ? 'mid' : 'wav';
 
           $scope.$apply(function () {
-            drop(result.data, dropContent || false);
+            drop(result.data);
           });
         }
 
@@ -193,12 +187,6 @@ angular.module('dragAndDrop', [])
         });
 
         dndApi.clear();
-      });
-
-      elem.addEventListener('dragenter', function (e) {
-      });
-
-      elem.addEventListener('dragleave', function (e) {
       });
 
       elem.addEventListener('dragover', function (e) {
