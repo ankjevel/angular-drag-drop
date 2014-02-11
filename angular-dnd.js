@@ -168,17 +168,13 @@ angular.module('dragAndDrop', [])
 
         if (angular.isFunction(drop) && angular.isDefined(result)) {
 
-          if (typeof $scope.elementWidth !== "undefined") {
-            var x = (e.offsetX - result.offset) / $scope.elementWidth * 100;
-            result.data.position = {
-              x: Math.max(Math.min(x, 100), 0)
-            };
-          }
-
           result.data.type = result.data.name.match(/\.mid$/i) ? 'mid' : 'wav';
 
           $scope.$apply(function () {
-            drop(result.data);
+            var target = e.target;
+            var x = e.offsetX + target.offsetLeft;
+            x = x - result.offset;
+            drop(result.data, x);
           });
         }
 
