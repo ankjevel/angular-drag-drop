@@ -1,28 +1,17 @@
 angular.module('dragAndDrop', [])
 .directive('drag', function (dndApi, $window) {
 
-  var drags = [];
-  var parent = function (drag, max) {
-    if (max > 5) {
-      return false;  /* Just incase */
-    }
-    var p = drag.parent();
-    if (p.hasClass('drop')) {
-      return p[0];
-    } else {
-      max++;
-      return parent(p, max);
-    }
-  };
-
   return {
     restrict: 'A',
     link: function ($scope, $elem, $attr) {
+
       var ngModel;
       if (angular.isDefined($scope.node)) {
         ngModel = $scope.node;
       } else if (angular.isDefined($scope.channel)) {
         ngModel = $scope.channel;
+      } else if (angular.isDefined($scope.region)) {
+        ngModel = $scope.region;
       } else {
         ngModel = $scope.$eval($attr.ngModel);
         if (angular.isUndefined(ngModel)) {
@@ -45,7 +34,11 @@ angular.module('dragAndDrop', [])
 
       var elem = $elem[0];
 
-      var end = $scope.$eval($attr.onDrag);
+      var end;
+
+      if (angular.isDefined($attr.onDragEnd)) {
+        end = $scope.$eval($attr.onDragEnd);
+      }
 
       function renderClone() {
         var canvas = $window.document.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
@@ -80,20 +73,6 @@ angular.module('dragAndDrop', [])
 
       elem.addEventListener('dragstart', function (e) {
 
-        console.log('dragstart');
-
-        if (drags.length === 0) {
-          drags = angular.element.find('.drop');
-        }
-
-        angular.forEach(dndApi.areas(), function (value, key) {
-          if (value[0] !== parent($elem, 0)) {
-            value.addClass('draging');
-          }
-        });
-
-        $elem.addClass('on-drag');
-
         (e.originalEvent || e).dataTransfer.effectAllowed = e.altKey ? 'copy' : 'move';
         (e.originalEvent || e).dataTransfer.setData('text/html', '');
 
@@ -111,11 +90,6 @@ angular.module('dragAndDrop', [])
       });
 
       elem.addEventListener('dragend', function (e) {
-        $elem.removeClass('on-drag');
-
-        angular.forEach(dndApi.areas(), function (area) {
-          area.removeClass('draging');
-        });
 
         if (angular.isFunction(end)) {
           if (e.dataTransfer.dropEffect === 'move') {
@@ -133,9 +107,6 @@ angular.module('dragAndDrop', [])
     }
   };
 }).directive('onDropped', function (dndApi) {
-
-  var areas = [];
-  var drags = [];
 
   return {
     link: function ($scope, $elem, $attr) {
@@ -158,8 +129,6 @@ angular.module('dragAndDrop', [])
           top    = elem.offsetTop,
           bottom = top + elem.offsetHeight;
 
-      dndApi.addArea($elem);
-
       elem.addEventListener('drop', function (e) {
 
         var result = dndApi.getData();
@@ -170,7 +139,9 @@ angular.module('dragAndDrop', [])
 
         if (angular.isFunction(drop) && angular.isDefined(result)) {
 
-          result.data.type = result.data.name.match(/\.mid$/i) ? 'mid' : 'wav';
+          var name = result.data.name;
+          name = name ? name : result.data.url;
+          result.data.type = ((name ? name : '').match(/\.mid$/i) ? 'mid' : 'wav');
 
           $scope.$apply(function () {
             var target = e.target;
@@ -179,10 +150,6 @@ angular.module('dragAndDrop', [])
             drop(result.data, x);
           });
         }
-
-        angular.forEach(dndApi.areas(), function (area, key) {
-          area.addClass('draging');
-        });
 
         dndApi.clear();
       });
@@ -202,21 +169,25 @@ angular.module('dragAndDrop', [])
     dragObject : {}
   };
 
-  var areas = [];
-
   return {
-    addArea: function (area){
-      areas.push(area);
-    },
-    areas: function () {
-      return areas;
-    },
     setData: function (data, offset) {
       if (angular.isUndefined(data)) {
         dnd.drag = {};
         return;
       }
-      var copy = angular.copy(data);
+      // the callstack got to large if
+      // we copied the whole object.
+      var copy = {
+        'frames': data.frames,
+        'name': data.name ? data.name : data.url,
+        'size': data.size,
+        'url': data.url,
+        'position': data.position,
+        'length': data.length,
+        'stretchMode': data.stretchMode,
+        'stretchRate': data.stretchRate,
+        'type': data.type
+      };
       dnd.drag = {
         data: copy,
         offset: offset
