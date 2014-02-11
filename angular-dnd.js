@@ -80,6 +80,8 @@ angular.module('dragAndDrop', [])
 
       elem.addEventListener('dragstart', function (e) {
 
+        console.log('dragstart');
+
         if (drags.length === 0) {
           drags = angular.element.find('.drop');
         }
