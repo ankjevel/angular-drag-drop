@@ -78,6 +78,8 @@ angular.module('dragAndDrop', [])
 
         var offset;
 
+        e.fromElement = elem;
+
         if (angular.isDefined($attr.clone)) {
           renderClone();
           offset = 150;
@@ -138,7 +140,6 @@ angular.module('dragAndDrop', [])
         }
 
         if (angular.isFunction(drop) && angular.isDefined(result)) {
-
           var name = result.data.name;
           name = name ? name : result.data.url;
           result.data.type = ((name ? name : '').match(/\.mid$/i) ? 'mid' : 'wav');
@@ -175,28 +176,15 @@ angular.module('dragAndDrop', [])
         dnd.drag = {};
         return;
       }
-      // the callstack got to large if
-      // we copied the whole object.
-      var copy = {
-        'frames': data.frames,
-        'name': data.name ? data.name : data.url,
-        'size': data.size,
-        'url': data.url,
-        'position': data.position,
-        'length': data.length,
-        'stretchMode': data.stretchMode,
-        'stretchRate': data.stretchRate,
-        'type': data.type
-      };
       dnd.drag = {
-        data: copy,
+        data: data,
         offset: offset
       };
     },
-    clear : function (){
+    clear : function () {
       delete dnd.drag;
     },
-    getData : function (){
+    getData : function () {
       return dnd.drag;
     }
   };
